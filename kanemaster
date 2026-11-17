@@ -1,0 +1,301 @@
+```html
+<!DOCTYPE html>
+<html lang="id" class="dark">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>KanaMaster — Belajar Hiragana & Katakana</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter & Noto Sans JP -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'sans-serif'],
+                        jp: ['"Noto Sans JP"', 'sans-serif'],
+                    },
+                    colors: {
+                        sakura: {
+                            400: '#fb7185',
+                            500: '#f43f5e',
+                            600: '#e11d48',
+                            900: '#881337',
+                        },
+                        sumi: {
+                            950: '#09090b',
+                            900: '#121215',
+                            800: '#1c1c21',
+                            700: '#27272e',
+                        }
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Kustomisasi Scrollbar & Efek 3D Flip untuk Flashcard */
+        body {
+            background-color: #09090b;
+            color: #f4f4f5;
+            -webkit-tap-highlight-color: transparent;
+        }
+        
+        .perspective-1000 {
+            perspective: 1000px;
+        }
+        
+        .transform-style-3d {
+            transform-style: preserve-3d;
+            transition: transform 0.55s cubic-bezier(0.23, 1, 0.32, 1);
+        }
+        
+        .backface-hidden {
+            backface-visibility: hidden;
+            -webkit-backface-visibility: hidden;
+        }
+        
+        .rotate-y-180 {
+            transform: rotateY(180deg);
+        }
+
+        /* Animasi halus saat perpindahan tab */
+        .fade-in {
+            animation: fadeIn 0.3s ease-out forwards;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* Efek ripple/pulse halus saat audio diputar */
+        @keyframes pulseRing {
+            0% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0.5); }
+            70% { box-shadow: 0 0 0 10px rgba(244, 63, 94, 0); }
+            100% { box-shadow: 0 0 0 0 rgba(244, 63, 94, 0); }
+        }
+        .speaking-pulse {
+            animation: pulseRing 0.8s ease-out;
+            border-color: #f43f5e !important;
+        }
+    </style>
+</head>
+<body class="min-h-screen flex flex-col font-sans antialiased selection:bg-sakura-500 selection:text-white">
+
+    <!-- Toast Notification untuk Pengganti Alert & Info Audio -->
+    <div id="toast" class="fixed bottom-5 right-5 z-50 transform translate-y-20 opacity-0 transition-all duration-300 pointer-events-none bg-sumi-800 border border-sumi-700 text-zinc-100 px-4 py-3 rounded-xl shadow-2xl flex items-center gap-3 text-sm">
+        <span id="toast-icon" class="text-sakura-400">🔊</span>
+        <span id="toast-msg">Memutar audio...</span>
+    </div>
+
+    <!-- Header & Navigasi Utama -->
+    <header class="sticky top-0 z-40 bg-sumi-950/85 backdrop-blur-md border-b border-sumi-800">
+        <div class="max-w-5xl mx-auto px-4 sm:px-6 py-4 flex flex-col sm:flex-row items-center justify-between gap-4">
+            <!-- Brand Logo -->
+            <div class="flex items-center gap-3">
+                <div class="w-10 h-10 rounded-xl bg-gradient-to-br from-sakura-500 to-sakura-600 flex items-center justify-center shadow-lg shadow-sakura-500/20 font-jp font-bold text-xl text-white">
+                    あ
+                </div>
+                <div>
+                    <h1 class="font-bold text-lg tracking-tight text-white flex items-center gap-2">
+                        KanaMaster <span class="text-xs font-medium px-2 py-0.5 rounded-full bg-sakura-500/15 text-sakura-400 border border-sakura-500/20">JP-ID</span>
+                    </h1>
+                    <p class="text-xs text-zinc-400">Belajar Hiragana & Katakana dari Nol</p>
+                </div>
+            </div>
+
+            <!-- Tab Navigasi -->
+            <nav class="flex bg-sumi-900 p-1.5 rounded-xl border border-sumi-800 w-full sm:w-auto" role="tablist">
+                <button onclick="switchTab('table')" id="tab-table" class="tab-btn flex-1 sm:flex-initial px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 bg-sakura-600 text-white shadow-sm">
+                    Tabel Kana
+                </button>
+                <button onclick="switchTab('flashcard')" id="tab-flashcard" class="tab-btn flex-1 sm:flex-initial px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-zinc-400 hover:text-white">
+                    Flashcard
+                </button>
+                <button onclick="switchTab('quiz')" id="tab-quiz" class="tab-btn flex-1 sm:flex-initial px-4 py-2 rounded-lg text-sm font-medium transition-all duration-200 text-zinc-400 hover:text-white">
+                    Kuis Latihan
+                </button>
+            </nav>
+        </div>
+    </header>
+
+    <!-- Konten Utama -->
+    <main class="flex-1 max-w-5xl w-full mx-auto px-4 sm:px-6 py-6 sm:py-8">
+
+        <!-- ========================================================= -->
+        <!-- SECTION 1: TABEL REFERENSI GOJUON (46 KARAKTER DASAR)     -->
+        <!-- ========================================================= -->
+        <section id="view-table" class="fade-in space-y-6">
+            <!-- Kontrol Filter Tabel -->
+            <div class="bg-sumi-900 border border-sumi-800 rounded-2xl p-4 sm:p-5 flex flex-col sm:flex-row items-center justify-between gap-4">
+                <!-- Toggle Hiragana / Katakana -->
+                <div class="flex items-center bg-sumi-950 p-1 rounded-xl border border-sumi-800 w-full sm:w-auto">
+                    <button onclick="setTableScript('hiragana')" id="btn-script-hiragana" class="flex-1 sm:flex-initial px-5 py-2 rounded-lg text-sm font-semibold transition-all bg-sumi-800 text-sakura-400 border border-sakura-500/30">
+                        Hiragana (ひらがな)
+                    </button>
+                    <button onclick="setTableScript('katakana')" id="btn-script-katakana" class="flex-1 sm:flex-initial px-5 py-2 rounded-lg text-sm font-semibold transition-all text-zinc-400 hover:text-zinc-200">
+                        Katakana (カタカナ)
+                    </button>
+                </div>
+
+                <!-- Toggle Tampilkan/Sembunyikan Romaji & Petunjuk -->
+                <div class="flex items-center justify-between sm:justify-end gap-4 w-full sm:w-auto">
+                    <span class="text-xs text-zinc-400 hidden md:inline-block">Klik kartu untuk dengar suara 🔊</span>
+                    <label class="inline-flex items-center cursor-pointer select-none bg-sumi-950 px-3.5 py-2 rounded-xl border border-sumi-800">
+                        <input type="checkbox" id="toggle-romaji" class="sr-only peer" checked onchange="toggleRomajiVisibility()">
+                        <div class="relative w-9 h-5 bg-sumi-700 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full rtl:peer-checked:after:-translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:start-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-sakura-500"></div>
+                        <span class="ms-2.5 text-xs font-medium text-zinc-300">Tampilkan Romaji</span>
+                    </label>
+                </div>
+            </div>
+
+            <!-- Grid Gojuon (5 Kolom: A, I, U, E, O) -->
+            <div class="bg-sumi-900/50 border border-sumi-800/80 rounded-2xl p-3 sm:p-6">
+                <!-- Header Kolom Vokal -->
+                <div class="grid grid-cols-5 gap-2 sm:gap-3 mb-3 text-center">
+                    <div class="text-xs font-bold uppercase tracking-wider text-sakura-400 py-1 bg-sumi-900 rounded-lg border border-sumi-800">A</div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-sakura-400 py-1 bg-sumi-900 rounded-lg border border-sumi-800">I</div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-sakura-400 py-1 bg-sumi-900 rounded-lg border border-sumi-800">U</div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-sakura-400 py-1 bg-sumi-900 rounded-lg border border-sumi-800">E</div>
+                    <div class="text-xs font-bold uppercase tracking-wider text-sakura-400 py-1 bg-sumi-900 rounded-lg border border-sumi-800">O</div>
+                </div>
+
+                <!-- Container Kartu Kana -->
+                <div id="kana-grid" class="grid grid-cols-5 gap-2 sm:gap-3">
+                    <!-- Di-render otomatis via JavaScript -->
+                </div>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- SECTION 2: MODE FLASHCARD INTERAKTIF                      -->
+        <!-- ========================================================= -->
+        <section id="view-flashcard" class="hidden fade-in space-y-6 max-w-xl mx-auto">
+            <!-- Filter & Kontrol Atas Flashcard -->
+            <div class="bg-sumi-900 border border-sumi-800 rounded-2xl p-3.5 flex flex-wrap items-center justify-between gap-3">
+                <div class="flex items-center gap-1.5 bg-sumi-950 p-1 rounded-xl border border-sumi-800 flex-1 sm:flex-initial">
+                    <button onclick="setFlashcardFilter('hiragana')" id="fc-filter-hiragana" class="fc-filter-btn flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold bg-sakura-600 text-white transition-all">Hiragana</button>
+                    <button onclick="setFlashcardFilter('katakana')" id="fc-filter-katakana" class="fc-filter-btn flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition-all">Katakana</button>
+                    <button onclick="setFlashcardFilter('mixed')" id="fc-filter-mixed" class="fc-filter-btn flex-1 px-3 py-1.5 rounded-lg text-xs font-semibold text-zinc-400 hover:text-white transition-all">Campur</button>
+                </div>
+
+                <div class="flex items-center gap-2 ml-auto">
+                    <span id="fc-counter" class="text-xs font-medium text-zinc-400 bg-sumi-950 px-3 py-1.5 rounded-lg border border-sumi-800">1 / 46</span>
+                    <button onclick="shuffleFlashcards()" title="Acak Urutan Kartu" class="p-2 rounded-xl bg-sumi-800 hover:bg-sumi-700 text-zinc-200 border border-sumi-700 transition-all active:scale-95 flex items-center gap-1.5 text-xs font-medium">
+                        <svg class="w-4 h-4 text-sakura-400" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"></path></svg>
+                        <span>Acak</span>
+                    </button>
+                </div>
+            </div>
+
+            <!-- Kartu 3D Flip -->
+            <div class="perspective-1000 w-full h-80 sm:h-96 cursor-pointer select-none" onclick="flipFlashcard()">
+                <div id="flashcard-inner" class="relative w-full h-full transform-style-3d">
+                    
+                    <!-- Sisi Depan (Huruf Jepang) -->
+                    <div class="absolute inset-0 backface-hidden bg-gradient-to-b from-sumi-800 to-sumi-900 border-2 border-sumi-700 hover:border-sakura-500/50 rounded-3xl p-6 flex flex-col items-center justify-between shadow-2xl transition-colors">
+                        <div class="w-full flex items-center justify-between">
+                            <span id="fc-badge-type" class="text-xs font-semibold px-3 py-1 rounded-full bg-sakura-500/15 text-sakura-400 border border-sakura-500/20">Hiragana</span>
+                            <button onclick="event.stopPropagation(); speakCurrentFlashcard()" class="p-2.5 rounded-full bg-sumi-950/80 hover:bg-sakura-600 text-zinc-300 hover:text-white border border-sumi-700 transition-all active:scale-90" title="Dengarkan Pelafalan">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                            </button>
+                        </div>
+
+                        <div id="fc-front-char" class="font-jp text-8xl sm:text-9xl font-bold text-white tracking-tight drop-shadow-md">
+                            あ
+                        </div>
+
+                        <p class="text-xs text-zinc-400 flex items-center gap-1.5">
+                            <span>Ketuk kartu untuk melihat cara baca</span>
+                        </p>
+                    </div>
+
+                    <!-- Sisi Belakang (Romaji & Tips Baca) -->
+                    <div class="absolute inset-0 backface-hidden rotate-y-180 bg-gradient-to-b from-sumi-900 to-sumi-950 border-2 border-sakura-500/60 rounded-3xl p-6 flex flex-col items-center justify-between shadow-2xl">
+                        <div class="w-full flex items-center justify-between">
+                            <span id="fc-back-char-small" class="font-jp text-2xl font-bold text-sakura-400">あ</span>
+                            <button onclick="event.stopPropagation(); speakCurrentFlashcard()" class="p-2.5 rounded-full bg-sakura-600 hover:bg-sakura-500 text-white shadow-lg shadow-sakura-600/30 transition-all active:scale-90" title="Dengarkan Pelafalan">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.536 8.464a5 5 0 010 7.072m2.828-9.9a9 9 0 010 12.728M5.586 15H4a1 1 0 01-1-1v-4a1 1 0 011-1h1.586l4.707-4.707C10.923 3.663 12 4.109 12 5v14c0 .891-1.077 1.337-1.707.707L5.586 15z"></path></svg>
+                            </button>
+                        </div>
+
+                        <div class="text-center space-y-2">
+                            <div class="text-xs uppercase tracking-widest text-zinc-500 font-semibold">Romaji</div>
+                            <div id="fc-back-romaji" class="text-6xl sm:text-7xl font-bold text-white tracking-wide">
+                                a
+                            </div>
+                            <div id="fc-back-hint" class="text-sm text-sakura-300 bg-sakura-500/10 border border-sakura-500/20 px-4 py-1.5 rounded-full inline-block mt-2">
+                                Dibaca seperti "a" pada kata "apel"
+                            </div>
+                        </div>
+
+                        <p class="text-xs text-zinc-500">Ketuk lagi untuk kembali ke huruf</p>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Tombol Navigasi Prev / Next -->
+            <div class="grid grid-cols-2 gap-4">
+                <button onclick="prevFlashcard()" class="py-3.5 px-5 rounded-2xl bg-sumi-900 hover:bg-sumi-800 border border-sumi-800 text-zinc-200 font-semibold text-sm flex items-center justify-center gap-2 transition-all active:scale-98">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path></svg>
+                    <span>Sebelumnya</span>
+                </button>
+                <button onclick="nextFlashcard()" class="py-3.5 px-5 rounded-2xl bg-sakura-600 hover:bg-sakura-500 text-white font-semibold text-sm flex items-center justify-center gap-2 shadow-lg shadow-sakura-600/20 transition-all active:scale-98">
+                    <span>Selanjutnya</span>
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path></svg>
+                </button>
+            </div>
+        </section>
+
+        <!-- ========================================================= -->
+        <!-- SECTION 3: MODE KUIS PILIHAN GANDA                        -->
+        <!-- ========================================================= -->
+        <section id="view-quiz" class="hidden fade-in space-y-6 max-w-xl mx-auto">
+            <!-- Pengaturan Kuis & Statistik Skor -->
+            <div class="bg-sumi-900 border border-sumi-800 rounded-2xl p-4 space-y-4">
+                <div class="flex flex-wrap items-center justify-between gap-2">
+                    <!-- Pilih Jenis Huruf Kuis -->
+                    <select id="quiz-script-select" onchange="generateQuizQuestion()" class="bg-sumi-950 border border-sumi-800 text-zinc-200 text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-sakura-500">
+                        <option value="hiragana">Kuis Hiragana</option>
+                        <option value="katakana">Kuis Katakana</option>
+                        <option value="mixed" selected>Campuran (Hiragana & Katakana)</option>
+                    </select>
+
+                    <!-- Pilih Arah Tebakan -->
+                    <select id="quiz-direction-select" onchange="generateQuizQuestion()" class="bg-sumi-950 border border-sumi-800 text-zinc-200 text-xs font-semibold rounded-xl px-3 py-2 focus:outline-none focus:border-sakura-500">
+                        <option value="kana-to-romaji">Huruf JP ➔ Romaji</option>
+                        <option value="romaji-to-kana">Romaji ➔ Huruf JP</option>
+                        <option value="random">Arah Acak</option>
+                    </select>
+                </div>
+
+                <!-- Bar Skor & Streak -->
+                <div class="grid grid-cols-3 gap-2 pt-2 border-t border-sumi-800/80 text-center">
+                    <div class="bg-sumi-950 rounded-xl p-2.5 border border-sumi-800/60">
+                        <div class="text-[11px] text-zinc-400 uppercase tracking-wider">Skor Benar</div>
+                        <div id="quiz-score" class="text-lg font-bold text-emerald-400 mt-0.5">0 / 0</div>
+                    </div>
+                    <div class="bg-sumi-950 rounded-xl p-2.5 border border-sumi-800/60">
+                        <div class="text-[11px] text-zinc-400 uppercase tracking-wider">Streak 🔥</div>
+                        <div id="quiz-streak" class="text-lg font-bold text-sakura-400 mt-0.5">0</div>
+                    </div>
+                    <div class="bg-sumi-950 rounded-xl p-2.5 border border-sumi-800/60 flex flex-col items-center justify-center">
+                        <button onclick="resetQuizStats()" class="text-xs text-zinc-400 hover:text-white underline decoration-zinc-600 underline-offset-4 transition-colors">
+                            Reset Skor
+                        </button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Area Soal Kuis -->
+            <div class="bg-sumi-900 border border-sumi-800 rounded-3xl p-6 sm:p-8 text-center space-y-6 shadow-xl">
+                <div class="space-y-2">
+                    <span id="quiz-prompt-label" class="text-xs font-semibold uppercase tracking-widest text-sakura-400 bg-sakura-500/10 px-3 py-1 rounded-full border border-s
